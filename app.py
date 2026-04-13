@@ -36,5 +36,5 @@ def predict(text: str):
     return {
         "user_phrase": text,
         "cleaned_phrase": text_clean,
-        "predicted_intent": prediction
+        "predicted_intent": str(prediction)
     }
