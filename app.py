@@ -17,8 +17,10 @@ def get_real_weather(city="Montreal"):
         temp = response['current_condition'][0]['temp_C']
         desc = response['current_condition'][0]['lang_fr'][0]['value']
         return f"Il fait actuellement {temp}°C à {city} ({desc})."
-    except:
-        return "Je n'ai pas pu récupérer la température en direct, mais le ciel semble changeant !"
+   # except:
+     #   return "Je n'ai pas pu récupérer la température en direct, mais le ciel semble changeant !"
+    except Exception as e:
+            return f"Erreur technique : {str(e)}"
 
 @app.get("/chat")
 def chat(message: str):
