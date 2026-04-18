@@ -12,7 +12,7 @@ def get_real_weather(city="Montreal"):
     """Cherche la vraie température sur internet"""
     try:
         # On demande le format JSON et le français
-        url = f"https://wttr.in/{city}?format=j1&lang=fr"
+        url = f"http://wttr.in/{city}?format=j1&lang=fr"
         response = requests.get(url).json()
         
         # Extraction sécurisée des données
