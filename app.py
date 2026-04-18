@@ -28,15 +28,19 @@ def get_real_weather(city="Montreal"):
     
 @app.get("/chat")
 def chat(message: str):
-    # Transformation et prédiction
-    vec = vectorizer.transform([message.lower()])
+    message_clean = message.lower()
+    vec = vectorizer.transform([message_clean])
     intent = model.predict(vec)[0]
     
-    # Logique de réponse selon l'intention
-    if intent == "temperature" or intent == "meteo_actuelle":
-        # Note : Dans un vrai projet Azure, on utiliserait le NLP pour extraire la ville.
-        # Ici, on simule pour démontrer la connexion API.
-        data_meteo = get_real_weather("Paris") # Ville exemple
+    if intent == "meteo_actuelle" or intent == "temperature":
+        # Astuce simple : on cherche si l'utilisateur a écrit " à [Ville]"
+        ville = "Ottawa" # Ville par défaut
+        if " à " in message_clean:
+            ville = message_clean.split(" à ")[-1].strip(" ?!.")
+        elif " au " in message_clean:
+            ville = message_clean.split(" au ")[-1].strip(" ?!.")
+            
+        data_meteo = get_real_weather(ville)
         return {"reponse": f"[Intention: {intent}] {data_meteo}"}
     
     elif intent == "salutation":
@@ -48,4 +52,3 @@ def chat(message: str):
     else:
         return {"reponse": f"J'ai bien compris votre demande ({intent}), mais je suis encore en apprentissage pour cette fonction !"}
 
-# Pour tester : http://127.0.0.1:8000/chat?message=Quel temps fait-il ?
