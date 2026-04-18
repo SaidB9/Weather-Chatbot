@@ -12,16 +12,14 @@ def get_real_weather(city="Montreal"):
     """Cherche la vraie température sur internet"""
     try:
         # Utilisation de l'API gratuite wttr.in (format JSON)
-        url = f"https://wttr.in/{city}?format=j1"
+        url = f"https://wttr.in/{city}?format=j1&lang=fr" # Ajoute &lang=fr à la fin
         response = requests.get(url).json()
         temp = response['current_condition'][0]['temp_C']
         desc = response['current_condition'][0]['lang_fr'][0]['value']
         return f"Il fait actuellement {temp}°C à {city} ({desc})."
-   # except:
-     #   return "Je n'ai pas pu récupérer la température en direct, mais le ciel semble changeant !"
-    except Exception as e:
-            return f"Erreur technique : {str(e)}"
-
+    except:
+        return "Je n'ai pas pu récupérer la température en direct, mais le ciel semble changeant !"
+    
 @app.get("/chat")
 def chat(message: str):
     # Transformation et prédiction
