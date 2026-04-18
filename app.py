@@ -11,14 +11,20 @@ vectorizer = joblib.load('vectorizer.pkl')
 def get_real_weather(city="Montreal"):
     """Cherche la vraie température sur internet"""
     try:
-        # Utilisation de l'API gratuite wttr.in (format JSON)
-        url = f"https://wttr.in/{city}?format=j1&lang=fr" # Ajoute &lang=fr à la fin
+        # On demande le format JSON et le français
+        url = f"https://wttr.in/{city}?format=j1&lang=fr"
         response = requests.get(url).json()
+        
+        # Extraction sécurisée des données
         temp = response['current_condition'][0]['temp_C']
-        desc = response['current_condition'][0]['lang_fr'][0]['value']
+        
+        # On récupère la description météo (qui sera en FR grâce à l'URL)
+        desc = response['current_condition'][0]['weatherDesc'][0]['value']
+        
         return f"Il fait actuellement {temp}°C à {city} ({desc})."
-    except:
-        return "Je n'ai pas pu récupérer la température en direct, mais le ciel semble changeant !"
+    except Exception as e:
+        # On affiche l'erreur précise pour le débuggage si besoin
+        return f"Oups, petite erreur technique avec l'API météo : {str(e)}"
     
 @app.get("/chat")
 def chat(message: str):
