@@ -26,7 +26,9 @@ class UserQuery(BaseModel):
 # 4. FONCTION D'EXTRACTION DE LA VILLE (Regex)
 def extract_city(text: str) -> Optional[str]:
     # Cherche un nom propre après "à", "en", "dans" ou "pour"
-    pattern = r"(?:\bà\s|\ben\s|\bdans\s|\bpour\s)([A-ZÀ-ÿ][a-zà-ÿ]+(?:\s[A-ZÀ-ÿ][a-zà-ÿ]+)*)"
+    # Cette version accepte "à", "a", "sur", "pour", "en" ou "dans"
+    pattern = r"(?:\bà\s|\ba\s|\bsur\s|\bpour\s|\ben\s|\bdans\s)([A-ZÀ-ÿ][a-zà-ÿ]+(?:\s[A-ZÀ-ÿ][a-zà-ÿ]+)*)"
+    
     match = re.search(pattern, text, re.IGNORECASE)
     return match.group(1) if match else None
 
