@@ -66,58 +66,48 @@ def get_weather_data(city: str, forecast: bool = False):
         return None
 
 # 6. POINT D'ENTRÉE (ENDPOINT) PRINCIPAL
-@app.post("/ask")
-async def ask_bot(query: UserQuery):
-    msg = query.message.strip()
-    if not msg:
-        raise HTTPException(status_code=400, detail="Message vide")
+# 1. On change @app.post en @app.get
+# 2. On s'assure que le chemin est bien "/chat" pour correspondre à ton URL
+@app.get("/chat")
+async def chat_endpoint(message: str = None): # Le message arrive directement via l'URL
+    if not message:
+        return {"error": "Aucun message reçu. Ajoutez ?message=votre_phrase à l'URL."}
 
     # --- ÉTAPE 1 : CLASSIFICATION NLU ---
-    msg_low = msg.lower()
+    msg_low = message.lower()
     vec = vectorizer.transform([msg_low])
     prediction = model.predict(vec)[0]
     
-    temps_intent = prediction[0]   # actuel / prévision / neutre
-    sujet_intent = prediction[1]   # meteo_generale / pluie / vent / temperature / social
+    temps_intent = prediction[0]   
+    sujet_intent = prediction[1]   
 
     # --- ÉTAPE 2 : GESTION DU SOCIAL ---
     if sujet_intent == "social":
         return {"reponse": "Bonjour ! Je suis prêt à vous donner la météo. Quelle ville vous intéresse ?"}
 
     # --- ÉTAPE 3 : EXTRACTION DE LA VILLE ---
-    city = extract_city(msg)
+    city = extract_city(message)
     if not city:
         return {
             "intentions": {"temps": temps_intent, "sujet": sujet_intent},
-            "reponse": "Je peux vous renseigner, mais j'ai besoin de savoir pour quelle ville."
+            "reponse": f"J'ai détecté une demande pour {sujet_intent}, mais je n'ai pas trouvé la ville dans votre phrase."
         }
 
-    # --- ÉTAPE 4 : RÉCUPÉRATION DES DONNÉES RÉELLES ---
+    # --- ÉTAPE 4 : APPEL À WTTR.IN ---
     is_forecast = (temps_intent == "prévision")
     weather = get_weather_data(city, forecast=is_forecast)
 
     if not weather:
-        return {"reponse": f"Désolé, je n'arrive pas à trouver les données pour {city}."}
+        return {"reponse": f"Désolé, les données météo pour {city} sont indisponibles."}
 
-    # --- ÉTAPE 5 : CONSTRUCTION DE LA RÉPONSE SELON LE SUJET ---
+    # --- ÉTAPE 5 : CONSTRUCTION DE LA RÉPONSE ---
     prefix = "Demain à" if is_forecast else "Actuellement à"
-    
     if sujet_intent == "temperature":
-        if is_forecast:
-            reponse = f"{prefix} {city}, il fera entre {weather['temp_min']}°C et {weather['temp_max']}°C."
-        else:
-            reponse = f"{prefix} {city}, il fait {weather['temp']}°C."
-            
+        reponse = f"{prefix} {city}, il fera {weather.get('temp', weather.get('temp_max'))}°C."
     elif sujet_intent == "vent":
-        reponse = f"{prefix} {city}, le vent souffle à {weather['vent']} km/h."
-        
-    elif sujet_intent == "pluie":
-        reponse = f"{prefix} {city}, les conditions sont : {weather['condition']}. Vérifiez les risques d'averses."
-        
-    else: # meteo_generale
-        cond = weather['condition']
-        t = weather['temp'] if not is_forecast else f"{weather['temp_min']}-{weather['temp_max']}°C"
-        reponse = f"{prefix} {city}, le ciel est {cond} avec environ {t}."
+        reponse = f"{prefix} {city}, le vent est de {weather['vent']} km/h."
+    else:
+        reponse = f"{prefix} {city}, le ciel est {weather['condition']}."
 
     return {
         "analysis": {"temps": temps_intent, "sujet": sujet_intent, "ville": city},
