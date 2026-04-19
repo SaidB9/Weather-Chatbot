@@ -44,6 +44,8 @@ def get_weather_data(city: str, forecast: bool = False):
         url = f"http://wttr.in/{city}?format=j1&lang=fr"
         response = requests.get(url, timeout=10)
         response.raise_for_status()
+        # ÉTAPE CRUCIALE : Forcer l'encodage
+        response.encoding = 'utf-8'
         data = response.json()
 
         if forecast:
@@ -122,7 +124,3 @@ async def chat_endpoint(message: str = None): # Le message arrive directement vi
         "reponse": reponse
     }
 
-# 7. LANCEMENT
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
