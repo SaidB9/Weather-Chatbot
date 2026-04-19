@@ -39,26 +39,26 @@ def get_forecast(city="Ottawa"):
         return f"Erreur prévisions : {str(e)}"
 
 def extraire_ville(message):
-    # 1. On cherche après "à", "au", "a"
-    # La regex capture maintenant les mots jusqu'à la fin ou la ponctuation
-    pattern = r'(?:à|au|a)\s+([a-zA-Z\u00C0-\u017F\s\-]+)'
-    match = re.search(pattern, message, re.IGNORECASE)
+    # On ajoute des espaces autour des prépositions pour ne pas matcher l'intérieur d'un mot
+    # On cherche " à ", " au ", ou " a "
+    pattern = r'\s(?:à|au|a)\s+([a-zA-Z\u00C0-\u017F\s\-]+)'
+    
+    # On ajoute un espace au début du message pour que la regex marche même si la ville est au début
+    match = re.search(pattern, " " + message.lower(), re.IGNORECASE)
     
     if match:
         extraction = match.group(1).strip()
-        # On sépare les mots
         mots = extraction.split()
         
-        # Liste de mots à ignorer si la regex les attrape
-        mots_interdits = ["la", "le", "les", "une", "un", "temperature", "meteo", "aujourd'hui", "aujourdhui"]
+        # Liste d'exclusion pour ne pas prendre de mots parasites
+        mots_interdits = ["la", "le", "les", "une", "un", "temperature", "température", "météo", "aujourd'hui", "aujourdhui"]
         
-        # On cherche le premier mot qui n'est pas dans la liste interdite
         for mot in mots:
             mot_propre = mot.strip("?!.,;")
-            if mot_propre.lower() not in mots_interdits:
+            if mot_propre.lower() not in mots_interdits and len(mot_propre) > 1:
                 return mot_propre.title()
                 
-    return "Ottawa" # Par défaut
+    return "Ottawa" # Ville par défaut si rien n'est trouvé
 
 @app.get("/chat")
 def chat(message: str):
