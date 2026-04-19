@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 import joblib
 import requests
+import re
 
 app = FastAPI()
 
@@ -32,13 +33,15 @@ def chat(message: str):
     vec = vectorizer.transform([message_clean])
     intent = model.predict(vec)[0]
     
-    if intent == "meteo_actuelle" or intent == "temperature":
-        # Astuce simple : on cherche si l'utilisateur a écrit " à [Ville]"
-        ville = "Ottawa" # Ville par défaut
-        if " à " in message_clean:
-            ville = message_clean.split(" à ")[-1].strip(" ?!.")
-        elif " au " in message_clean:
-            ville = message_clean.split(" au ")[-1].strip(" ?!.")
+    if intent in ("meteo_actuelle", "temperature"):
+    ville = "Ottawa"  # Par défaut pour Ottawa, ON
+    
+    # Pattern : après " à ", " au " ou " a " → mots jusqu'à ponctuation ou fin
+    pattern = r'(?:à|au|a)\s+([A-Z][a-zA-Z\s]*(?:[A-Z][a-zA-Z\s]*){0,2})[\s\?\!\.,;]?'
+    match = re.search(pattern, message_clean, re.IGNORECASE)
+    
+    if match:
+        ville = match.group(1).strip().title()  # Nettoie et capitalise
             
         data_meteo = get_real_weather(ville)
         return {"reponse": f"[Intention: {intent}] {data_meteo}"}
