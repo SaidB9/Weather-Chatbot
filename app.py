@@ -39,27 +39,28 @@ def get_forecast(city="Ottawa"):
         return f"Erreur prévisions : {str(e)}"
 
 def extraire_ville(message):
-    # On ajoute des espaces autour des prépositions pour ne pas matcher l'intérieur d'un mot
-    # On cherche " à ", " au ", ou " a "
+    # On cherche " à ", " au ", ou " a " avec des espaces obligatoires autour
+    # pour ne pas capturer le "a" à l'intérieur d'un verbe comme "sera" ou "fera"
     pattern = r'\s(?:à|au|a)\s+([a-zA-Z\u00C0-\u017F\s\-]+)'
     
-    # On ajoute un espace au début du message pour que la regex marche même si la ville est au début
+    # On traite le message avec un espace au début pour la regex
     match = re.search(pattern, " " + message.lower(), re.IGNORECASE)
     
     if match:
         extraction = match.group(1).strip()
         mots = extraction.split()
         
-        # Liste d'exclusion pour ne pas prendre de mots parasites
-        mots_interdits = ["la", "le", "les", "une", "un", "temperature", "température", "météo", "aujourd'hui", "aujourdhui"]
+        # Liste d'exclusion plus complète
+        mots_interdits = ["la", "le", "les", "une", "un", "temperature", "température", 
+                          "météo", "meteo", "aujourd'hui", "aujourdhui", "demain"]
         
         for mot in mots:
             mot_propre = mot.strip("?!.,;")
+            # CRUCIAL : On vérifie que le mot n'est pas interdit ET qu'il fait plus de 1 lettre
             if mot_propre.lower() not in mots_interdits and len(mot_propre) > 1:
                 return mot_propre.title()
                 
-    return "Ottawa" # Ville par défaut si rien n'est trouvé
-
+    return "Ottawa" # Ville par défaut
 @app.get("/chat")
 def chat(message: str):
     message_clean = message.lower()
