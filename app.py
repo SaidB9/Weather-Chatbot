@@ -39,11 +39,24 @@ def get_forecast(city="Ottawa"):
         return f"Erreur prévisions : {str(e)}"
 
 def extraire_ville(message):
-    """Fonction utilitaire pour extraire la ville du message"""
-    pattern = r'(?:à|au|a)\s+([a-zA-Z\s\-]+)'
-    match = re.search(pattern, message)
+    """Extraction améliorée pour éviter de confondre l'intention et la ville"""
+    # On cherche spécifiquement ce qui suit les prépositions de lieu
+    # en ignorant les mots fonctionnels comme "la" ou "le"
+    pattern = r'(?:à|au|a)\s+([a-zA-Z\u00C0-\u017F\s\-]+)' 
+    match = re.search(pattern, message, re.IGNORECASE)
+    
     if match:
-        return match.group(1).split()[0].strip("?!.,;").title()
+        # On nettoie pour ne prendre que le premier groupe de mots significatifs
+        brut = match.group(1).strip()
+        # On divise par les espaces et on prend ce qui reste après avoir 
+        # éliminé les mots vides si nécessaire, ici on prend le dernier bloc 
+        # car la ville est souvent à la fin dans "température à Casablanca"
+        mots = brut.split()
+        if mots:
+            # On prend le premier mot trouvé après la préposition
+            ville_potentielle = mots[0].strip("?!.,;")
+            return ville_potentielle.title()
+            
     return "Ottawa" # Ville par défaut
 
 @app.get("/chat")
