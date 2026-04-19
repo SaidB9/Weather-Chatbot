@@ -74,7 +74,13 @@ async def chat_endpoint(message: str = None): # Le message arrive directement vi
         return {"error": "Aucun message reçu. Ajoutez ?message=votre_phrase à l'URL."}
 
     # --- ÉTAPE 1 : CLASSIFICATION NLU ---
-    msg_low = message.lower()
+    msg_low = message.lower().strip()
+
+    # Règle prioritaire pour les salutations
+    if msg_low in ["bonjour", "salut", "hello", "coucou"]:
+        return {"reponse": "Bonjour ! Je suis votre assistant météo. Posez-moi une question sur le temps qu'il fait."}
+
+    # Sinon, on utilise le modèle ML...
     vec = vectorizer.transform([msg_low])
     prediction = model.predict(vec)[0]
     
