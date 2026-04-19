@@ -10,46 +10,68 @@ model = joblib.load('model_meteo.pkl')
 vectorizer = joblib.load('vectorizer.pkl')
 
 def get_real_weather(city="Ottawa"):
-    """Cherche la vraie température sur internet"""
+    """Cherche la météo actuelle (Direct)"""
     try:
-        # On demande le format JSON et le français (en HTTP pour éviter les erreurs SSL Azure)
+        url = f"http://wttr.in/{city}?format=j1&lang=fr"
+        response = requests.get(url).json()
+        temp = response['current_condition'][0]['temp_C']
+        desc = response['current_condition'][0]['weatherDesc'][0]['value']
+        return f"Il fait actuellement {temp}°C à {city} ({desc})."
+    except Exception as e:
+        return f"Erreur météo actuelle : {str(e)}"
+
+def get_forecast(city="Ottawa"):
+    """Cherche les prévisions pour demain"""
+    try:
         url = f"http://wttr.in/{city}?format=j1&lang=fr"
         response = requests.get(url).json()
         
-        # Extraction sécurisée des données
-        temp = response['current_condition'][0]['temp_C']
-        desc = response['current_condition'][0]['weatherDesc'][0]['value']
+        # weather[1] correspond à demain dans l'API wttr.in
+        forecast_tomorrow = response['weather'][1]
+        date = forecast_tomorrow['date']
+        max_t = forecast_tomorrow['maxtempC']
+        min_t = forecast_tomorrow['mintempC']
+        # On prend la description météo à midi (index 4 de 'hourly')
+        desc = forecast_tomorrow['hourly'][4]['weatherDesc'][0]['value']
         
-        return f"Il fait actuellement {temp}°C à {city} ({desc})."
+        return f"Demain le {date} à {city}, il fera entre {min_t}°C et {max_t}°C ({desc})."
     except Exception as e:
-        return f"Oups, petite erreur technique avec l'API météo : {str(e)}"
-    
+        return f"Erreur prévisions : {str(e)}"
+
+def extraire_ville(message):
+    """Fonction utilitaire pour extraire la ville du message"""
+    pattern = r'(?:à|au|a)\s+([a-zA-Z\s\-]+)'
+    match = re.search(pattern, message)
+    if match:
+        return match.group(1).split()[0].strip("?!.,;").title()
+    return "Ottawa" # Ville par défaut
+
 @app.get("/chat")
 def chat(message: str):
     message_clean = message.lower()
     vec = vectorizer.transform([message_clean])
     intent = model.predict(vec)[0]
     
+    # 1. Météo Actuelle
     if intent in ("meteo_actuelle", "temperature"):
-        # --- CORRECTION DE L'INDENTATION ICI ---
-        ville = "Ottawa"  # Ville par défaut
-        
-        # Recherche de la ville après "à", "au" ou "a"
-        pattern = r'(?:à|au|a)\s+([a-zA-Z\s\-]+)'
-        match = re.search(pattern, message_clean)
-        
-        if match:
-            # On récupère le premier mot trouvé après la préposition
-            ville = match.group(1).split()[0].strip("?!.,;").title()
-            
-        data_meteo = get_real_weather(ville)
-        return {"reponse": f"[Intention: {intent}] {data_meteo}"}
+        ville = extraire_ville(message_clean)
+        data = get_real_weather(ville)
+        return {"reponse": f"[Intention: {intent}] {data}"}
     
+    # 2. Prévisions (NOUVEAU)
+    elif intent == "previsions":
+        ville = extraire_ville(message_clean)
+        data = get_forecast(ville)
+        return {"reponse": f"[Intention: {intent}] {data}"}
+    
+    # 3. Salutations
     elif intent == "salutation":
         return {"reponse": "Bonjour ! Je suis votre assistant météo. Comment puis-je vous aider ?"}
     
+    # 4. Conseils
     elif intent == "conseil_vetement":
         return {"reponse": "Vu la météo, je vous conseille de prendre une petite veste !"}
     
+    # 5. Fallback
     else:
-        return {"reponse": f"J'ai bien compris votre demande ({intent}), mais je suis encore en apprentissage !"}
+        return {"reponse": f"J'ai compris votre demande ({intent}), mais je ne sais pas encore traiter ce détail !"}
